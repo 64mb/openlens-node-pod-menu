@@ -32,15 +32,30 @@ export function NodeMenu(props: Renderer.Component.KubeObjectMenuProps<Node>) {
   const nodeName = node.getName();
   const kubectlPath = App.Preferences.getKubectlPath() || "kubectl";
 
-  const sendToTerminal = (command: string) => {
+  const sendToTerminal = (command: string, tabId?: string) => {
     terminalStore.sendCommand(command, {
       enter: true,
       newTab: true,
+      tabId,
     });
     Navigation.hideDetails();
   };
 
   const shell = () => {
+    if(node.metadata.labels['yandex.cloud/node-group-id']){
+      const tab = createTerminalTab({
+        title: `Node: ${node.metadata.labels['kubernetes.io/hostname']}`
+      })
+      sendToTerminal(`pssh ${node.status.addresses.pop().address}`, tab.id);
+      return
+    }
+    if(node.metadata.labels['kubernetes.io/hostname'] === 'colima'){
+      const tab = createTerminalTab({
+        title: `Node: colima`
+      })
+      sendToTerminal('colima ssh', tab.id);
+      return
+    }
     createTerminalTab({
       title: `Node: ${nodeName}`,
       node: nodeName,
