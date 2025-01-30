@@ -31,6 +31,7 @@ export function NodeMenu(props: Renderer.Component.KubeObjectMenuProps<Node>) {
 
   const nodeName = node.getName();
   const kubectlPath = App.Preferences.getKubectlPath() || "kubectl";
+  const isCloudNode = node.metadata.labels['yandex.cloud/node-group-id'];
 
   const sendToTerminal = (command: string, tabId?: string) => {
     terminalStore.sendCommand(command, {
@@ -41,14 +42,16 @@ export function NodeMenu(props: Renderer.Component.KubeObjectMenuProps<Node>) {
     Navigation.hideDetails();
   };
 
-  const shell = () => {
-    if(node.metadata.labels['yandex.cloud/node-group-id']){
+  const pssh = ()=> {
+    if(isCloudNode){
       const tab = createTerminalTab({
         title: `Node: ${node.metadata.labels['kubernetes.io/hostname']}`
       })
       sendToTerminal(`pssh ${node.status.addresses.pop().address}`, tab.id);
-      return
     }
+  }
+
+  const shell = () => {
     if(node.metadata.labels['kubernetes.io/hostname'] === 'colima'){
       const tab = createTerminalTab({
         title: `Node: colima`
@@ -89,6 +92,18 @@ export function NodeMenu(props: Renderer.Component.KubeObjectMenuProps<Node>) {
 
   return (
     <>
+      {
+        isCloudNode && (
+          <MenuItem onClick={pssh}>
+            <Icon
+              material="key"
+              interactive={toolbar}
+              tooltip={toolbar && "PSSH"}
+            />
+            <span className="title">PSSH</span>
+          </MenuItem>
+        )
+      }
       <MenuItem onClick={shell}>
         <Icon
           svg="ssh"
